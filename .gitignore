@@ -1,0 +1,10 @@
+## NESOY Ignore File ##
+
+*.log
+*.bak
+*.c
+*.lib
+*.pdb
+
+.vs/
+Debug/
