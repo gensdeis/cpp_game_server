@@ -92,6 +92,7 @@ void Lock::ReadUnlock(const char* name)
 	GDeadLockProfiler->PopLock(name);
 #endif
 
+	// fetch_sub : return the value before sub
 	if ((_lockFlag.fetch_sub(1) & READ_COUNT_MASK) == 0)
 		CRASH("MULTIPLE_UNLOCK");
 }

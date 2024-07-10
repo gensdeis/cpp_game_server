@@ -42,13 +42,14 @@ static void DoWorkerJob(ServerServiceRef& service)
 int main()
 {
 	ASSERT_CRASH(GDBConnectionPool->Connect(1, L"Driver={SQL Server Native Client 11.0};Server=(localdb)\\MSSQLLocalDB;Database=ServerDb;Trusted_Connection=Yes;"));
-
+	//ASSERT_CRASH(GDBConnectionPool->ConnectMySql(L"DRIVER={MySQL ODBC 8.0 Driver};SERVER=localhost;DATABASE=my-sql;USER=admin;PASSWORD=admin;OPTION=3;"));
+	
 	DBConnection* dbConn = GDBConnectionPool->Pop();
 	DBSynchronizer dbSync(*dbConn);
 	dbSync.Synchronize(L"GameDB.xml");
 
 	{
-		WCHAR name[] = L"Rookiss";
+		WCHAR name[] = L"ColdMarinatedRibs";
 
 		SP::InsertGold insertGold(*dbConn);
 		insertGold.In_Gold(100);

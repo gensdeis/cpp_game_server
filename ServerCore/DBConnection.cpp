@@ -33,6 +33,35 @@ bool DBConnection::Connect(SQLHENV henv, const WCHAR* connectionString)
 	return (ret == SQL_SUCCESS || ret == SQL_SUCCESS_WITH_INFO);
 }
 
+bool DBConnection::ConnectMysql()
+{
+	try {
+		// Import MySQL Driver Instances
+		sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+
+		// Connect to the MySQL database
+		std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "username", "password"));
+
+		// Select a database
+		con->setSchema("database_name");
+
+		// Execute SQL queries
+		std::unique_ptr<sql::Statement> stmt(con->createStatement());
+		std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM table_name"));
+
+		// Output Results
+		while (res->next()) {
+			std::cout << "ID: " << res->getInt("id") << " Name: " << res->getString("name") << std::endl;
+		}
+	}
+	catch (sql::SQLException& e) {
+		std::cerr << "SQLException: " << e.what() << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
 void DBConnection::Clear()
 {
 	if (_connection != SQL_NULL_HANDLE)

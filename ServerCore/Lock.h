@@ -11,6 +11,8 @@ W : WriteFlag (Exclusive Lock Owner ThreadId)
 R : ReadFlag (Shared Lock Count)
 ---------------------------------------------*/
 
+// W -> R (O)
+// R -> W (X)
 class Lock
 {
     enum : uint32

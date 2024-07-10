@@ -2,6 +2,8 @@
 #include <sql.h>
 #include <sqlext.h>
 
+#include <mysql/jdbc.h>
+
 /*----------------
 	DBConnection
 -----------------*/
@@ -16,6 +18,7 @@ class DBConnection
 {
 public:
 	bool			Connect(SQLHENV henv, const WCHAR* connectionString);
+	bool			ConnectMysql();
 	void			Clear();
 
 	bool			Execute(const WCHAR* query);

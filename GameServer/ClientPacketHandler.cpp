@@ -15,7 +15,7 @@ bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 	return false;
 }
 
-bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
+bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& packet)
 {
 	GameSessionRef gameSession = static_pointer_cast<GameSession>(session);
 
@@ -64,11 +64,11 @@ bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
 	return true;
 }
 
-bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
+bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& packet)
 {
 	GameSessionRef gameSession = static_pointer_cast<GameSession>(session);
 
-	uint64 index = pkt.playerindex();
+	uint64 index = packet.playerindex();
 	// TODO : Validation
 
 	gameSession->_currentPlayer = gameSession->_players[index]; // READ_ONLY?
@@ -80,16 +80,16 @@ bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 	enterGamePacket.set_success(true);
 	auto sendBuffer = ClientPacketHandler::MakeSendBuffer(enterGamePacket);
 	gameSession->_currentPlayer->ownerSession->Send(sendBuffer);
-
+	  
 	return true;
 }
 
-bool Handle_C_CHAT(PacketSessionRef& session, Protocol::C_CHAT& pkt)
+bool Handle_C_CHAT(PacketSessionRef& session, Protocol::C_CHAT& packet)
 {
-	std::cout << pkt.msg() << endl;
+	std::cout << packet.msg() << endl;
 
 	Protocol::S_CHAT chatPacket;
-	chatPacket.set_msg(pkt.msg());
+	chatPacket.set_msg(packet.msg());
 	auto sendBuffer = ClientPacketHandler::MakeSendBuffer(chatPacket);
 
 	GRoom->DoAsync(&Room::Broadcast, sendBuffer);

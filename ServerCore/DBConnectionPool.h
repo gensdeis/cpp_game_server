@@ -11,7 +11,8 @@ public:
 	DBConnectionPool();
 	~DBConnectionPool();
 
-	bool					Connect(int32 connectionCount, const WCHAR* connectionString);
+	bool					Connect(int32 connectionCount, const WCHAR* connectionString);	
+	bool					ConnectMysql(int32 connectionCount, const WCHAR* connectionString);	
 	void					Clear();
 
 	DBConnection*			Pop();

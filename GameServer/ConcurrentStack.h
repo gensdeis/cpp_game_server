@@ -33,7 +33,7 @@ public:
 	void WaitPop(T& value)
 	{
 		unique_lock<mutex> lock(_mutex);
-		_condVar.wait(lcok, [this] { return _stack.empty() == false; });
+		_condVar.wait(lock, [this] { return _stack.empty() == false; });
 		value = std::move(_stack.top());
 		_stack.pop();
 	}
@@ -46,68 +46,96 @@ private:
 template<typename T>
 class LockFreeStack
 {
-	struct Node
+	struct Node;
+
+	struct CountedNodePtr
 	{
-		Node(const T& value) : data(value)
-		{
-
-		}
-
-		T data;
-		Node* next;
+		int32 externalCount = 0;
+		Node* ptr = nullptr;
 	};
 
-public:
-
-	// 1) 새 노드를 만들고
-	// 2) 새 노드의 next = head
-	// 3) head = 새 노드
-
-	// [ ][ ][ ][ ][ ]
-	// [head]
-	void Push(const T& value)
+	struct Node
 	{
-		Node* node = new Node(value);
-		node->next = _head;
-
-
-		//if (_head == node->next)
-		//{
-		//	_head = node;
-		//	return true;
-		//}
-		//else
-		//{
-		//	node->next = _head;
-		//	return false;
-		//}
-
-
-		while (_head.compare_exchange_weak(node->next, node) == false)
+		Node(const T& value) : data(make_shared<T>(value)), next(nullptr)
 		{
-			// node->next = _head; 
+
 		}
 
-		_head = node;
+		shared_ptr<T> data;
+		atomic<int32> internalCount = 0;
+		CountedNodePtr next;
+	};
+
+public: 
+
+	void Push(const T& value)
+	{
+		CountedNodePtr node;
+		node.ptr = new Node(value);
+		node.externalCount = 1;
+
+		node.ptr->next = _head;
+		while (_head.compare_exchange_weak(node.ptr->next, node) == false)
+		{
+
+		}
 	}
 
-	// 1) head 읽기
-	// 2) head->next 읽기
-	// 3) head = head->next
-	// 4) data 추출해서 반환
-	// 5) 추출한 노드를 삭제
-
-	// [ ][ ][ ][ ][ ]
-	// [head]
-	bool TryPop(T& value)
+	shared_ptr<T> TryPop(T& value)
 	{
-		Node* oldHead = _head;
+		CountedNodePtr oldHead = _head;
+		while (true)
+		{
+			// 참조 권한? 가져와야함
+			IncreaseHeadCount(oldHead);
+			// 최소한 externalCount >= 2 일테니 삭제 X (안전하게 접근할 수 있는)
+			Node* ptr = oldHead.ptr;
 
-		while()
+			// 데이터 없음
+			if (ptr == nullptr)
+				return shared_ptr<T>();
+
+			// 소유 (ptr->next로 head를 바꿔치기 한 쓰레드가 이김)
+			if (_head.compare_exchange_strong(oldHead, ptr->next))
+			{
+				shared_ptr<T> res;
+				res.swap(ptr->data);
+
+				// external : 1 -> 2(+1)
+				// internal : 0
+
+				// 다른 쓰레드가 있는가?
+				const int32 countIncrease = oldHead.externalCount - 2;
+
+				if (ptr->internalCount.fetch_add(countIncrease) == -countIncrease)
+					delete ptr;
+
+				return res;
+			}
+			else if (ptr->internalCount.fetch_sub(1) == 1)
+			{
+				// 참조권 get, 소유권 fail -> 뒷처리
+				delete ptr;
+			}
+		}
 	}
 
 private:
-	// [ ][ ][ ][ ][ ]
-	// [head]
-	atomic<Node*> _head;
+
+	void IncreaseHeadCount(CountedNodePtr& oldCounter)
+	{
+		while (true)
+		{
+			CountedNodePtr newCounter = oldCounter;
+			newCounter.externalCount++;
+
+			if (_head.compare_exchange_strong(oldCounter, newCounter))
+			{
+				break;
+			}
+		}
+	}
+
+private:
+	atomic<CountedNodePtr> _head;
 };
